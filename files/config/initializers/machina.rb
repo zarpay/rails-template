@@ -24,6 +24,5 @@ Machina.configure do |config|
   base_url = ENV.fetch("BASE_URL", "http://localhost:#{ENV.fetch('PORT', APPNAME_PORT)}")
   config.identity_callback_uri = "#{base_url}/machina/callback"
 
-  config.cache_ttl   = 30.days
   config.cache_store = Rails.cache
 end
