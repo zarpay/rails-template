@@ -266,7 +266,7 @@ create_file "config/routes.rb", <<~RUBY
     mount MissionControl::Jobs::Engine, at: "/jobs"
 
     # Defines the root path route ("/")
-    # root "home#index"
+    root "home#index"
   end
 RUBY
 
@@ -276,7 +276,7 @@ RUBY
 
 remove_file "Procfile.dev" if File.exist?("Procfile.dev")
 create_file "Procfile.dev", <<~PROCFILE
-  web: bin/rails server -p ${PORT:-#{@port}} -b 0.0.0.0
+  web: bin/rails server -p ${PORT:-#{@port}} -b 127.0.0.1
   css: bin/rails tailwindcss:watch
   worker: bin/rails solid_queue:start
 PROCFILE

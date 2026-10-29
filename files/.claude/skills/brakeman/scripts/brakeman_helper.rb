@@ -105,8 +105,17 @@ class BrakemanHelper
     puts "=" * 80
     puts "INITIAL SECURITY AUDIT"
     puts "=" * 80
-    puts "Running comprehensive scan with multiple output formats..."
+    puts "Running comprehensive initial security scan with multiple output formats..."
     puts
+    
+    # Pass the argv ARRAY via splat to `system` (never a shell-parsed string):
+    # the app path, baseline file, and output paths arrive from the command
+    # line and are interpolated here, so a value containing shell
+    # metacharacters could otherwise execute arbitrary commands. A multiple-
+    # argument spawn has NO shell parsing of any element. (The splat matters
+    # on Windows: Ruby's single-Array argument form cannot resolve the
+    # `brakeman` .bat shim — "wrong first argument" — while the equivalent
+    # splat form spawns it correctly.)
     
     timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
     html_file = File.join(@options[:output_dir], "audit_#{timestamp}.html")
@@ -119,12 +128,12 @@ class BrakemanHelper
       '-o', json_file,
       '--report-routes',
       '--color'
-    ].join(' ')
+    ]
     
     puts "Command: #{cmd}"
     puts
     
-    system(cmd)
+    system(*cmd)
     status = $?.exitstatus
     
     puts
@@ -152,12 +161,12 @@ class BrakemanHelper
       '-w3',
       '-q',
       '--color'
-    ].join(' ')
+    ]
     
     puts "Command: #{cmd}"
     puts
     
-    system(cmd)
+    system(*cmd)
     exit $?.exitstatus
   end
 
@@ -174,12 +183,12 @@ class BrakemanHelper
       '-f', 'json',
       '-q',
       '--no-exit-on-error'
-    ].join(' ')
+    ]
     
     puts "Command: #{cmd}"
     puts
     
-    system(cmd)
+    system(*cmd)
     status = $?.exitstatus
     
     # Parse and summarize results
@@ -226,12 +235,12 @@ class BrakemanHelper
       '-p', @options[:app_path],
       '--compare', @options[:baseline_file],
       '--color'
-    ].join(' ')
+    ]
     
     puts "Command: #{cmd}"
     puts
     
-    system(cmd)
+    system(*cmd)
     exit $?.exitstatus
   end
 
@@ -251,9 +260,9 @@ class BrakemanHelper
       '-p', @options[:app_path],
       '-I',
       '--color'
-    ].join(' ')
-    
-    system(cmd)
+    ]
+
+    system(*cmd)
     exit $?.exitstatus
   end
 
@@ -273,12 +282,12 @@ class BrakemanHelper
       '--no-exit-on-warn',
       '--no-exit-on-error',
       '--color'
-    ].join(' ')
+    ]
     
     puts "Command: #{cmd}"
     puts
     
-    system(cmd)
+    system(*cmd)
     
     puts
     puts "Reports generated:"
@@ -303,12 +312,12 @@ class BrakemanHelper
       '-o', json_file,
       '--show-ignored',
       '--color'
-    ].join(' ')
+    ]
     
     puts "Command: #{cmd}"
     puts
     
-    system(cmd)
+    system(*cmd)
     status = $?.exitstatus
     
     puts

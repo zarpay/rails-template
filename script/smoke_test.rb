@@ -14,6 +14,8 @@ require "fileutils"
 require "tmpdir"
 require "yaml"
 require "json"
+require "open3"
+require "rbconfig"
 
 ROOT = File.expand_path("..", __dir__)
 SRC  = File.join(ROOT, "files")
@@ -79,21 +81,35 @@ Dir.mktmpdir do |tmp|
     config/bundler-audit.yml
     .github/workflows/ci.yml
   ].each do |p|
-    YAML.load_file("#{tmp}/#{p}", aliases: true)
+    # safe_load (not the default full deserializer behind YAML.load_file) so a
+    # template file can never instantiate arbitrary Ruby objects
+    # (e.g. `!!ruby/object:...`) while being parsed. `aliases: true` is still
+    # allowed because these files use YAML anchors (`<<: *default`).
+    Psych.safe_load(File.read("#{tmp}/#{p}"), aliases: true)
     puts "  OK    #{p}"
   rescue => e
     fail_loud.call("YAML parse #{p}: #{e.message}")
   end
 
   puts
+  # Run the syntax check WITHOUT a shell. Passing the file path as a separate
+  # argv element means it can never be interpreted as shell syntax. The old
+  # backtick version interpolated `p.shellescape rescue p` into a command
+  # line that the shell parsed: Shellwords was never required, so #shellescape
+  # always raised NoMethodError and the `rescue p` fallback silently fed the
+  # RAW, unquoted path to the shell (command injection if a path were ever
+  # attacker-controlled, misparse on paths with spaces). Open3.capture3 with
+  # argv elements has no shell at all; RbConfig.ruby targets the running
+  # interpreter, so the check works even when `ruby` is not on PATH.
   puts "── Ruby syntax check ──"
   rb_files = Dir.glob("#{tmp}/**/*.rb")
   rb_files.each do |p|
-    out = `ruby -c #{p.shellescape rescue p} 2>&1`
-    if out.strip == "Syntax OK"
+    stdout, stderr, status = Open3.capture3(RbConfig.ruby, "-c", p)
+    if status.success?
       next
     else
-      fail_loud.call("Ruby syntax #{p.sub("#{tmp}/", "")}: #{out.strip}")
+      out = [stdout, stderr].join.strip
+      fail_loud.call("Ruby syntax #{p.sub("#{tmp}/", "")}: #{out}")
     end
   end
   puts "  OK    #{rb_files.size} files"
